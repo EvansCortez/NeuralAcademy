@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NeuralAcademy – Phase 1</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; }
+    #preview { white-space: pre-wrap; border: 1px solid #ccc; padding: 1rem; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>NeuralAcademy – PDF to Text</h1>
+
+  <input type="file" id="pdfInput" accept="application/pdf" />
+  <button id="uploadBtn">Upload PDF</button>
+
+  <div id="status"></div>
+
+  <h2>Preview</h2>
+  <div id="meta"></div>
+  <div id="preview"></div>
+
+  <script>
+    const uploadBtn = document.getElementById("uploadBtn");
+    const pdfInput = document.getElementById("pdfInput");
+    const statusDiv = document.getElementById("status");
+    const metaDiv = document.getElementById("meta");
+    const previewDiv = document.getElementById("preview");
+
+    uploadBtn.addEventListener("click", async () => {
+      const file = pdfInput.files[0];
+      if (!file) {
+        statusDiv.textContent = "Please choose a PDF first.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      statusDiv.textContent = "Uploading...";
+      metaDiv.textContent = "";
+      previewDiv.textContent = "";
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          statusDiv.textContent = "Error: " + (err.detail || res.statusText);
+          return;
+        }
+
+        const data = await res.json();
+        statusDiv.textContent = "Uploaded successfully.";
+
+        metaDiv.textContent =
+          `File: ${data.filename}\n` +
+          `Title: ${data.title}\n` +
+          `Pages: ${data.page_count}`;
+
+        previewDiv.textContent = data.text_preview;
+      } catch (e) {
+        console.error(e);
+        statusDiv.textContent = "Network error. Is the backend running?";
+      }
+    });
+  </script>
+</body>
+</html>
