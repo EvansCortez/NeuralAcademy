@@ -1,8 +1,7 @@
-# backend/sandbox.py
-def run_code_stub(code: str):
-    # Later: call real sandbox / container
+def run_student_code(code_text):
+    """PHASE 2: SAFE CODE EXECUTION"""
     return {
-        "status": "not_implemented",
-        "message": "Code execution will be added in a later phase.",
-        "received_code": code,
+        "status": "stub", 
+        "output": "Code runner coming in Phase 2",
+        "code_preview": code_text[:100]
     }

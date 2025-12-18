@@ -1,156 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NeuralAcademy – Phase 1</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-      max-width: 1000px; margin: 0 auto; padding: 2rem; 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh; color: #333;
-    }
-    .container { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 2rem; }
-    h1 { text-align: center; color: #4a5568; margin-bottom: 2rem; }
-    .upload-area { 
-      border: 2px dashed #cbd5e0; border-radius: 8px; padding: 2rem; text-align: center; 
-      transition: all 0.3s; cursor: pointer; margin-bottom: 2rem;
-    }
-    .upload-area:hover, .upload-area.dragover { border-color: #667eea; background: #f7fafc; }
-    .upload-area input[type="file"] { display: none; }
-    button { 
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-      color: white; border: none; padding: 0.75rem 2rem; border-radius: 6px; 
-      font-size: 1rem; cursor: pointer; transition: transform 0.2s;
-    }
-    button:hover:not(:disabled) { transform: translateY(-2px); }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .status { padding: 1rem; border-radius: 6px; margin: 1rem 0; font-weight: 500; }
-    .status.success { background: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
-    .status.error { background: #fed7d7; color: #742a2a; border: 1px solid #fc8181; }
-    .status.loading { background: #bee3f8; color: #2c5282; border: 1px solid #90cdf4; }
-    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0; }
-    .meta-item { background: #f7fafc; padding: 1rem; border-radius: 6px; }
-    .preview { 
-      background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 8px; 
-      padding: 1.5rem; max-height: 500px; overflow-y: auto; white-space: pre-wrap; 
-      font-family: 'Monaco', 'Menlo', monospace; font-size: 0.9rem; line-height: 1.5;
-    }
-    .phase-badge { 
-      display: inline-block; background: #ed8936; color: white; padding: 0.25rem 0.75rem; 
-      border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-left: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralAcademy - Phase 1</title>
+    <link rel="stylesheet" href="11-style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>NeuralAcademy <span class="phase-badge">Phase 1</span></h1>
-    
-    <div class="upload-area" id="uploadArea">
-      <input type="file" id="pdfInput" accept="application/pdf" />
-      <p>📄 Drop a PDF here or click to browse</p>
-      <button id="uploadBtn">Upload PDF</button>
+    <div class="app">
+        <header>
+            <h1>🧠 NeuralAcademy</h1>
+            <span class="phase-badge">Phase 1 Complete</span>
+        </header>
+        
+        <section class="upload-zone">
+            <input type="file" id="pdf-file" accept=".pdf">
+            <button id="upload-btn">📤 Upload PDF</button>
+            <div id="upload-status"></div>
+        </section>
+        
+        <section id="preview-section" class="hidden">
+            <h2>📄 Document Preview</h2>
+            <div id="file-info"></div>
+            <pre id="text-preview"></pre>
+            <button id="study-btn">✨ Generate Study Sheet</button>
+        </section>
+        
+        <section id="image-section" class="hidden">
+            <h2>🖼️ Images Found (<span id="image-count">0</span>)</h2>
+            <div id="image-gallery" class="gallery"></div>
+        </section>
+        
+        <section id="study-section" class="hidden">
+            <h2>📚 AI Study Sheet</h2>
+            <div id="study-content"></div>
+        </section>
     </div>
-
-    <div id="status"></div>
-
-    <div id="results" style="display: none;">
-      <div class="meta-grid" id="meta"></div>
-      <h2>📖 Text Preview</h2>
-      <div id="preview"></div>
-    </div>
-  </div>
-
-  <script>
-    const uploadBtn = document.getElementById("uploadBtn");
-    const pdfInput = document.getElementById("pdfInput");
-    const uploadArea = document.getElementById("uploadArea");
-    const statusDiv = document.getElementById("status");
-    const metaDiv = document.getElementById("meta");
-    const previewDiv = document.getElementById("preview");
-    const resultsDiv = document.getElementById("results");
-
-    // Drag & drop support
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      uploadArea.classList.add("dragover");
-    });
-    uploadArea.addEventListener("dragleave", () => {
-      uploadArea.classList.remove("dragover");
-    });
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove("dragover");
-      const file = e.dataTransfer.files[0];
-      if (file && file.type === "application/pdf") {
-        pdfInput.files = e.dataTransfer.files;
-        uploadPDF();
-      }
-    });
-
-    // Click to browse
-    uploadArea.addEventListener("click", () => pdfInput.click());
-
-    uploadBtn.addEventListener("click", uploadPDF);
-    pdfInput.addEventListener("change", uploadPDF);
-
-    async function uploadPDF() {
-      const file = pdfInput.files[0];
-      if (!file) {
-        showStatus("Please choose a PDF first.", "error");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      showStatus("Uploading and processing PDF...", "loading");
-      resultsDiv.style.display = "none";
-
-      try {
-        const res = await fetch("http://127.0.0.1:8000/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          showStatus(`Error: ${err.detail || res.statusText}`, "error");
-          return;
-        }
-
-        const data = await res.json();
-        showStatus(`✅ Success! Processed ${data.page_count} pages.`, "success");
-
-        // Show metadata
-        metaDiv.innerHTML = `
-          <div class="meta-item">
-            <strong>📁 File</strong><br>${data.filename}
-          </div>
-          <div class="meta-item">
-            <strong>📚 Title</strong><br>${data.title}
-          </div>
-          <div class="meta-item">
-            <strong>📄 Pages</strong><br>${data.page_count}
-          </div>
-        `;
-
-        previewDiv.textContent = data.text_preview || "No text extracted.";
-        resultsDiv.style.display = "block";
-
-      } catch (e) {
-        console.error(e);
-        showStatus("❌ Network error. Is the backend running on port 8000?", "error");
-      }
-    }
-
-    function showStatus(message, type) {
-      statusDiv.textContent = message;
-      statusDiv.className = `status ${type}`;
-      uploadBtn.disabled = type === "loading";
-    }
-  </script>
+    <script src="12-main.js"></script>
 </body>
 </html>

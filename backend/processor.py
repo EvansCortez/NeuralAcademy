@@ -1,34 +1,49 @@
-# backend/processor.py
-import fitz
+import fitz  # PyMuPDF
 import re
+import base64
 from collections import Counter
 
-def extract_pdf_text(content: bytes):
-    doc = fitz.open(stream=content, filetype="pdf")
+def extract_pdf_text(pdf_bytes):
+    """EXTRACT TEXT + IMAGES FROM PDF"""
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     metadata = doc.metadata or {}
-    texts = []
-    for page in doc:
-        texts.append(page.get_text())
-    page_count = len(doc)
+    texts = [page.get_text() for page in doc]
+    images = []
+    
+    # EXTRACT IMAGES FROM EVERY PAGE
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        image_list = page.get_images()
+        for img_index, img in enumerate(image_list):
+            xref = img[0]
+            pix = fitz.Pixmap(doc, xref)
+            if pix.n - pix.alpha < 4:  # RGB/GRAYSCALE
+                img_data = pix.tobytes("png")
+                images.append({
+                    "page": page_num + 1,
+                    "index": img_index + 1,
+                    "width": pix.width,
+                    "height": pix.height,
+                    "base64": base64.b64encode(img_data).decode('ascii')
+                })
+            pix = None
+    
     doc.close()
-    full_text = "".join(texts)
-    return metadata, page_count, full_text
+    return metadata, len(doc), "".join(texts), images
 
-def simple_study_sheet(text: str):
-    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-    main_idea = sentences[0] if sentences else "Main idea not available."
-
-    words = re.findall(r"\b[a-zA-Z]{4,}\b", text.lower())
-    stopwords = {"this", "that", "with", "from", "have", "which",
-                 "these", "those", "your", "their", "will", "about"}
+def simple_study_sheet(text):
+    """FAKE AI STUDY SHEET"""
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    main_idea = sentences[0][:250] + "..." if sentences else "No content found"
+    
+    words = re.findall(r'\b[a-zA-Z]{5,}\b', text.lower())
+    stopwords = {"the", "and", "for", "are", "but", "not", "you", "all", "can", "had"}
     filtered = [w for w in words if w not in stopwords]
-    common = [w for w, _ in Counter(filtered).most_common(5)]
-
+    concepts = [w.capitalize() for w, _ in Counter(filtered).most_common(6)]
+    
     return {
         "main_idea": main_idea,
-        "key_concepts": common,
-        "examples": [
-            "Example 1 will be generated with AI in a later phase.",
-            "Example 2 will be generated with AI in a later phase.",
-        ],
+        "concepts": concepts or ["No concepts"],
+        "examples": ["Phase 2: Real AI examples"],
+        "phase": "1-fake-ai"
     }

@@ -1,55 +1,57 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from processor import extract_pdf_text, simple_study_sheet
-from models import PageRequest, StudyGuideRequest, CodeRequest
-from sandbox import run_code_stub
-import fitz  # PyMuPDF
+from fastapi.responses import HTMLResponse
 import uvicorn
 
-app = FastAPI()
+# IMPORT MY FILES
+from processor import extract_pdf_text, simple_study_sheet
+from models import StudyGuideRequest
+
+app = FastAPI(title="🧠 NeuralAcademy - Phase 1")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # later: lock this down
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
-@app.get("/")
-def read_root():
-    return {"status": "NeuralAcademy Backend is Running"}
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    with open("../frontend/10-index.html", "r") as f:
+        return f.read()
+
+@app.get("/status")
+def status():
+    return {
+        "name": "NeuralAcademy", 
+        "phase": "1", 
+        "features": ["PDF text", "PDF images", "Study sheet"],
+        "ready": True
+    }
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
-
-    try:
-        content = await file.read()
-        doc = fitz.open(stream=content, filetype="pdf")
-
-        metadata = doc.metadata
-        full_text = ""
-        for page in doc:
-            full_text += page.get_text()
-
-        page_count = len(doc)
-        doc.close()
-
-        return {
-            "filename": file.filename,
-            "title": metadata.get("title") or "Untitled Document",
-            "page_count": page_count,
-            "text_preview": full_text[:2000],
-        }
-    except Exception as e:
-        print(f"Error processing PDF: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process PDF")
+        raise HTTPException(400, "Only PDF files allowed")
     
-@app.post("/run-code")
-async def run_code(req: CodeRequest):
-    return run_code_stub(req.code)
+    content = await file.read()
+    metadata, page_count, full_text, images = extract_pdf_text(content)
+    
+    return {
+        "filename": file.filename,
+        "title": metadata.get("title", "No Title"),
+        "author": metadata.get("author", "Unknown"),
+        "pages": page_count,
+        "preview": full_text[:2500],
+        "images": images[:6]  # MAX 6 IMAGES FOR PREVIEW
+    }
+
+@app.post("/study-sheet")
+async def study_sheet(req: StudyGuideRequest):
+    return simple_study_sheet(req.text)
 
 if __name__ == "__main__":
+    print("🚀 NeuralAcademy Phase 1 starting on http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000)
