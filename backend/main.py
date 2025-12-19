@@ -3,55 +3,80 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-# IMPORT MY FILES
-from processor import extract_pdf_text, simple_study_sheet
+from processor import extract_pdf_text, smart_study_sheet
 from models import StudyGuideRequest
+from sandbox import run_student_code
 
-app = FastAPI(title="🧠 NeuralAcademy - Phase 1")
+
+app = FastAPI(title="🧠 NeuralAcademy - Phase 2")
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    with open("../frontend/10-index.html", "r") as f:
+    # Serve the frontend HTML file
+    with open("../frontend/10-index.html", "r", encoding="utf-8") as f:
         return f.read()
+
 
 @app.get("/status")
 def status():
     return {
-        "name": "NeuralAcademy", 
-        "phase": "1", 
-        "features": ["PDF text", "PDF images", "Study sheet"],
-        "ready": True
+        "name": "NeuralAcademy",
+        "phase": "2",
+        "features": [
+            "PDF text",
+            "PDF images",
+            "Structured study sheet",
+            "Code sandbox stub",
+        ],
+        "ready": True,
     }
+
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
+    # Basic validation
     if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(400, "Only PDF files allowed")
-    
+        raise HTTPException(status_code=400, detail="Only PDF files allowed")
+
+    # Read file bytes
     content = await file.read()
+
+    # Use helper to extract metadata, text, and images
     metadata, page_count, full_text, images = extract_pdf_text(content)
-    
+
     return {
         "filename": file.filename,
         "title": metadata.get("title", "No Title"),
         "author": metadata.get("author", "Unknown"),
-        "pages": page_count,
-        "preview": full_text[:2500],
-        "images": images[:6]  # MAX 6 IMAGES FOR PREVIEW
+        "page_count": page_count,
+        "text_preview": full_text[:2500],
+        "full_text": full_text,
+        "images": images[:6],  # max 6 images for preview
     }
 
-@app.post("/study-sheet")
-async def study_sheet(req: StudyGuideRequest):
-    return simple_study_sheet(req.text)
+
+@app.post("/generate-study-sheet")
+async def generate_study_sheet(req: StudyGuideRequest):
+    # Structured, multi-section fake AI study sheet
+    return smart_study_sheet(req.text)
+
+
+@app.post("/run-code")
+async def run_code(req: StudyGuideRequest):
+    # Phase 2 stub: safe code execution placeholder
+    return run_student_code(req.text)
+
 
 if __name__ == "__main__":
-    print("🚀 NeuralAcademy Phase 1 starting on http://127.0.0.1:8000")
+    print("🚀 NeuralAcademy Phase 2 starting on http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000)
