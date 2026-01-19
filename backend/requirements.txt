@@ -3,3 +3,6 @@ uvicorn[standard]
 PyMuPDF
 python-multipart
 Pillow
+langchain
+openai
+python-dotenv

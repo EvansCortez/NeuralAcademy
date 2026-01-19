@@ -2,10 +2,14 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import uvicorn
+from dotenv import load_dotenv
+import os
 
-from processor import extract_pdf_text, smart_study_sheet
+from processor import extract_pdf_text, smart_study_sheet, generate_coding_challenge_ai, analyze_code_ai
 from models import StudyGuideRequest
 from sandbox import run_student_code
+
+load_dotenv()  # Load environment variables from .env file
 
 
 app = FastAPI(title="🧠 NeuralAcademy - Phase 2")
@@ -23,7 +27,7 @@ app.add_middleware(
 @app.get("/", response_class=HTMLResponse)
 async def home():
     # Serve the frontend HTML file
-    with open("../frontend/10-index.html", "r", encoding="utf-8") as f:
+    with open("../frontend/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -52,7 +56,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     content = await file.read()
 
     # Use helper to extract metadata, text, and images
-    metadata, page_count, full_text, images = extract_pdf_text(content)
+    metadata, page_count, full_text, page_texts, images = extract_pdf_text(content)
 
     return {
         "filename": file.filename,
@@ -61,6 +65,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         "page_count": page_count,
         "text_preview": full_text[:2500],
         "full_text": full_text,
+        "page_texts": page_texts,
         "images": images[:6],  # max 6 images for preview
     }
 
@@ -71,12 +76,24 @@ async def generate_study_sheet(req: StudyGuideRequest):
     return smart_study_sheet(req.text)
 
 
+@app.post("/generate-coding-challenge")
+async def generate_coding_challenge(req: StudyGuideRequest):
+    # Phase 2: AI-generated coding challenge
+    return generate_coding_challenge_ai(req.text)
+
+
 @app.post("/run-code")
 async def run_code(req: StudyGuideRequest):
-    # Phase 2 stub: safe code execution placeholder
+    # Phase 2: safe code execution
     return run_student_code(req.text)
 
 
+@app.post("/analyze-code")
+async def analyze_code(req: StudyGuideRequest):
+    # Phase 3: AI Tutor analyzes code and provides progressive hints
+    return analyze_code_ai(req.text)
+
+
 if __name__ == "__main__":
-    print("🚀 NeuralAcademy Phase 2 starting on http://127.0.0.1:8000")
+    print("🚀 NeuralAcademy Phase 3 starting on http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000)
