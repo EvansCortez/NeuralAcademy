@@ -20,11 +20,11 @@
 
 ## 🛠️ Tech Stack
 
-* **Frontend:** HTML5, CSS3, JavaScript (ES6+).
+* **Frontend:** React 19, TypeScript, Vite.
 * **Backend:** Python (FastAPI).
-* **Processing / “AI”:** PyMuPDF for PDF text + image extraction, custom rule‑based NLP for structured study sheets (Phase 2 in progress).
-* **Planned AI Stack:** LangChain and OpenAI GPT‑4o for real study guide generation.
-* **Planned Sandbox:** Secure code execution via Monaco editor + E2B or Docker containers.
+* **Processing / “AI”:** PyMuPDF for PDF text + image extraction, plus a LangChain + OpenAI GPT‑4o pipeline for structured study sheets with a deterministic fallback when no API key is configured.
+* **AI Stack:** LangChain and OpenAI GPT‑4o (via `OPENAI_API_KEY`) for study guides and coding challenges.
+* **Sandbox:** Python code sandbox executed in a restricted subprocess (Phase 3 UI still in progress).
 
 ---
 
