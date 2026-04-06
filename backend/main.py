@@ -5,8 +5,21 @@ import uvicorn
 from dotenv import load_dotenv
 import os
 
-from processor import extract_pdf_text, smart_study_sheet, generate_coding_challenge_ai, analyze_code_ai
-from models import StudyGuideRequest
+from processor import (
+    extract_pdf_text,
+    smart_study_sheet,
+    generate_coding_challenge_ai,
+    analyze_code_ai,
+)
+from models import (
+    StudyGuideRequest,
+    StatusResponse,
+    UploadResponse,
+    StudySheetResponse,
+    CodingChallengeResponse,
+    CodeRunResult,
+    CodeAnalysisResponse,
+)
 from sandbox import run_student_code
 
 load_dotenv()  # Load environment variables from .env file
@@ -31,23 +44,23 @@ async def home():
         return f.read()
 
 
-@app.get("/status")
-def status():
-    return {
+@app.get("/status", response_model=StatusResponse)
+def status() -> StatusResponse:
+    return StatusResponse(
         "name": "NeuralAcademy",
-        "phase": "2",
-        "features": [
+        phase="2",
+        features=[
             "PDF text",
             "PDF images",
             "Structured study sheet",
             "Code sandbox stub",
         ],
-        "ready": True,
-    }
+        ready=True,
+    )
 
 
-@app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+@app.post("/upload", response_model=UploadResponse)
+async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
     # Basic validation
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files allowed")
@@ -58,40 +71,42 @@ async def upload_pdf(file: UploadFile = File(...)):
     # Use helper to extract metadata, text, and images
     metadata, page_count, full_text, page_texts, images = extract_pdf_text(content)
 
-    return {
-        "filename": file.filename,
-        "title": metadata.get("title", "No Title"),
-        "author": metadata.get("author", "Unknown"),
-        "page_count": page_count,
-        "text_preview": full_text[:2500],
-        "full_text": full_text,
-        "page_texts": page_texts,
-        "images": images[:6],  # max 6 images for preview
-    }
+    return UploadResponse(
+        filename=file.filename,
+        title=metadata.get("title", "No Title"),
+        author=metadata.get("author", "Unknown"),
+        page_count=page_count,
+        text_preview=full_text[:2500],
+        full_text=full_text,
+        page_texts=page_texts,
+        images=images[:6],  # type: ignore[arg-type]  # list[dict] -> list[UploadImage]
+    )
 
 
-@app.post("/generate-study-sheet")
-async def generate_study_sheet(req: StudyGuideRequest):
+@app.post("/generate-study-sheet", response_model=StudySheetResponse)
+async def generate_study_sheet(req: StudyGuideRequest) -> StudySheetResponse:
     # Structured, multi-section fake AI study sheet
-    return smart_study_sheet(req.text)
+    return smart_study_sheet(req.text)  # type: ignore[return-value]
 
 
-@app.post("/generate-coding-challenge")
-async def generate_coding_challenge(req: StudyGuideRequest):
+@app.post("/generate-coding-challenge", response_model=CodingChallengeResponse)
+async def generate_coding_challenge(
+    req: StudyGuideRequest,
+) -> CodingChallengeResponse:
     # Phase 2: AI-generated coding challenge
-    return generate_coding_challenge_ai(req.text)
+    return generate_coding_challenge_ai(req.text)  # type: ignore[return-value]
 
 
-@app.post("/run-code")
-async def run_code(req: StudyGuideRequest):
+@app.post("/run-code", response_model=CodeRunResult)
+async def run_code(req: StudyGuideRequest) -> CodeRunResult:
     # Phase 2: safe code execution
-    return run_student_code(req.text)
+    return run_student_code(req.text)  # type: ignore[return-value]
 
 
-@app.post("/analyze-code")
-async def analyze_code(req: StudyGuideRequest):
+@app.post("/analyze-code", response_model=CodeAnalysisResponse)
+async def analyze_code(req: StudyGuideRequest) -> CodeAnalysisResponse:
     # Phase 3: AI Tutor analyzes code and provides progressive hints
-    return analyze_code_ai(req.text)
+    return analyze_code_ai(req.text)  # type: ignore[return-value]
 
 
 if __name__ == "__main__":

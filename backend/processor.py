@@ -1,11 +1,13 @@
 import fitz  # PyMuPDF
 import re
 import base64
+import os
 from collections import Counter
+from typing import Optional
+
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-import os
 
 
 def extract_pdf_text(pdf_bytes):
@@ -107,19 +109,28 @@ def _make_questions(key_terms):
     return questions[:6]
 
 
+def _get_chat_openai(model: str, temperature: float) -> Optional[ChatOpenAI]:
+    """
+    Central helper to construct a ChatOpenAI client or return None
+    when the API key is not configured.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
+
+
 def analyze_code_ai(code: str):
     """
     AI Tutor analyzes student code and provides progressive hints
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    llm = _get_chat_openai(model="gpt-4o", temperature=0.3)
+    if llm is None:
         return {
             "analysis": "OpenAI API key not configured.",
             "hints": ["Please set your OPENAI_API_KEY in the .env file."],
             "phase": "3-ai-tutor",
         }
-
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=api_key)
 
     response_schemas = [
         ResponseSchema(name="analysis", description="Brief analysis of the code's correctness and logic"),
@@ -171,16 +182,14 @@ def generate_coding_challenge_ai(text: str):
     """
     Generate a Python coding challenge based on the study material
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    llm = _get_chat_openai(model="gpt-4o", temperature=0.7)
+    if llm is None:
         return {
             "title": "API Key Required",
             "task": "Please set your OPENAI_API_KEY in the .env file to generate coding challenges.",
             "starter_code": "def solve():\n    # Your code here\n    pass",
             "test_cases": [],
         }
-
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.7, api_key=api_key)
 
     response_schemas = [
         ResponseSchema(name="title", description="Catchy title for the coding challenge"),
@@ -240,8 +249,8 @@ def smart_study_sheet(text: str):
         }
 
     # Initialize OpenAI model
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    llm = _get_chat_openai(model="gpt-4o", temperature=0.3)
+    if llm is None:
         return {
             "main_idea": "OpenAI API key not configured.",
             "sections": [],
@@ -251,8 +260,6 @@ def smart_study_sheet(text: str):
             "flashcards": [],
             "phase": "2-ai-powered",
         }
-
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=api_key)
 
     # Define output schema
     response_schemas = [

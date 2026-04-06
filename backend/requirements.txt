@@ -6,3 +6,4 @@ Pillow
 langchain
 openai
 python-dotenv
+pytest
