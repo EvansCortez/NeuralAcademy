@@ -47,7 +47,7 @@ async def home():
 @app.get("/status", response_model=StatusResponse)
 def status() -> StatusResponse:
     return StatusResponse(
-        "name": "NeuralAcademy",
+        name="NeuralAcademy",
         phase="2",
         features=[
             "PDF text",
