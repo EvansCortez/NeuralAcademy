@@ -109,6 +109,21 @@ def _make_questions(key_terms):
     return questions[:6]
 
 
+def _make_flashcards(terms):
+    flashcards = []
+    for term in terms[:8]:
+        flashcards.append(
+            {
+                "term": term,
+                "definition": (
+                    f"In your notes, {term} appears as an important concept. "
+                    "Summarize its meaning and significance in your own words."
+                ),
+            }
+        )
+    return flashcards
+
+
 def _get_chat_openai(model: str, temperature: float) -> Optional[ChatOpenAI]:
     """
     Central helper to construct a ChatOpenAI client or return None
