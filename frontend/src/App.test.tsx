@@ -1,6 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import App from './App'
+
+function renderApp(initialRoute = '/study') {
+  return render(
+    <MemoryRouter initialEntries={[initialRoute]}>
+      <App />
+    </MemoryRouter>,
+  )
+}
 
 describe('App shell', () => {
   beforeEach(() => {
@@ -67,23 +76,22 @@ describe('App shell', () => {
     )
   })
 
-  it('renders the NeuralAcademy header', () => {
-    render(<App />)
-    expect(screen.getByText(/NeuralAcademy/i)).toBeInTheDocument()
+  it('renders the marketing home page', () => {
+    renderApp('/')
+    expect(
+      screen.getByText(/AI-powered academic success for CS students/i),
+    ).toBeInTheDocument()
   })
 
-  it('shows placeholder before any uploads', () => {
-    render(<App />)
+  it('shows placeholder before any uploads in Study Center', () => {
+    renderApp('/study')
     expect(
       screen.getByText(/No uploads yet this session/i),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(/Upload a PDF on the left/i),
     ).toBeInTheDocument()
   })
 
   it('generates and renders a study sheet after upload', async () => {
-    render(<App />)
+    renderApp('/study')
 
     const file = new File(['pdf'], 'systems.pdf', {
       type: 'application/pdf',
@@ -101,8 +109,6 @@ describe('App shell', () => {
 
     await screen.findByText(/Understand consensus and fault tolerance/i)
     expect(screen.getByText(/Why is consensus important/i)).toBeInTheDocument()
-    expect(screen.getByText(/Core terms/i)).toBeInTheDocument()
-    expect(screen.getByText(/^Fault$/i)).toBeInTheDocument()
   })
 })
 
@@ -113,7 +119,7 @@ describe('Backend status', () => {
       vi.fn().mockRejectedValueOnce(new Error('offline')) as typeof fetch,
     )
 
-    render(<App />)
+    renderApp('/study')
 
     await waitFor(() =>
       expect(

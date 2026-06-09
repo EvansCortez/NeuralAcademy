@@ -1,13 +1,13 @@
 import fitz  # PyMuPDF
 import re
 import base64
+import json
 import os
 from collections import Counter
-from typing import Optional
+from typing import Any
 
-from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
 
 
 def extract_pdf_text(pdf_bytes):
@@ -124,7 +124,7 @@ def _make_flashcards(terms):
     return flashcards
 
 
-def _get_chat_openai(model: str, temperature: float) -> Optional[ChatOpenAI]:
+def _get_chat_openai(model: str, temperature: float):
     """
     Central helper to construct a ChatOpenAI client or return None
     when the API key is not configured.
@@ -132,7 +132,24 @@ def _get_chat_openai(model: str, temperature: float) -> Optional[ChatOpenAI]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
+
+    try:
+        from langchain_openai import ChatOpenAI
+    except ImportError:
+        return None
+
     return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
+
+
+def _invoke_json_llm(llm, prompt: PromptTemplate, variables: dict[str, Any]) -> dict[str, Any]:
+    parser = JsonOutputParser()
+    chain = prompt | llm | parser
+    result = chain.invoke(variables)
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, str):
+        return json.loads(result)
+    raise ValueError("Unexpected LLM response format")
 
 
 def analyze_code_ai(code: str):
@@ -147,13 +164,11 @@ def analyze_code_ai(code: str):
             "phase": "3-ai-tutor",
         }
 
-    response_schemas = [
-        ResponseSchema(name="analysis", description="Brief analysis of the code's correctness and logic"),
-        ResponseSchema(name="hints", description="List of 3 progressive hints: Conceptual, Directional, Eureka Question", type="list"),
-    ]
-
-    output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = output_parser.get_format_instructions()
+    response_schemas = """
+Return JSON with:
+- analysis: string
+- hints: array of 3 strings (Conceptual, Directional, Eureka Question)
+"""
 
     prompt = PromptTemplate(
         template="""
@@ -174,12 +189,11 @@ Focus on:
 Remember: Don't give the answer directly - guide them to discover it themselves.
 """,
         input_variables=["code"],
-        partial_variables={"format_instructions": format_instructions}
+        partial_variables={"format_instructions": response_schemas},
     )
 
     try:
-        chain = prompt | llm | output_parser
-        result = chain.invoke({"code": code[:2000]})  # Limit code length
+        result = _invoke_json_llm(llm, prompt, {"code": code[:2000]})
         return {
             "analysis": result.get("analysis", "Code analysis complete."),
             "hints": result.get("hints", []),
@@ -206,15 +220,13 @@ def generate_coding_challenge_ai(text: str):
             "test_cases": [],
         }
 
-    response_schemas = [
-        ResponseSchema(name="title", description="Catchy title for the coding challenge"),
-        ResponseSchema(name="task", description="Clear description of what the student needs to implement"),
-        ResponseSchema(name="starter_code", description="Python starter code with def solve(): function"),
-        ResponseSchema(name="test_cases", description="List of hidden test cases (input/output pairs)", type="list"),
-    ]
-
-    output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = output_parser.get_format_instructions()
+    response_schemas = """
+Return JSON with:
+- title: string
+- task: string
+- starter_code: string (Python with def solve():)
+- test_cases: array of objects with input and output fields
+"""
 
     prompt = PromptTemplate(
         template="""
@@ -231,12 +243,11 @@ Create a challenge that:
 {format_instructions}
 """,
         input_variables=["text"],
-        partial_variables={"format_instructions": format_instructions}
+        partial_variables={"format_instructions": response_schemas},
     )
 
     try:
-        chain = prompt | llm | output_parser
-        result = chain.invoke({"text": text[:4000]})
+        result = _invoke_json_llm(llm, prompt, {"text": text[:4000]})
         return result
     except Exception as e:
         return {
@@ -263,35 +274,19 @@ def smart_study_sheet(text: str):
             "phase": "2-ai-powered",
         }
 
-    # Initialize OpenAI model
     llm = _get_chat_openai(model="gpt-4o", temperature=0.3)
     if llm is None:
-        return {
-            "main_idea": "OpenAI API key not configured.",
-            "sections": [],
-            "questions": [],
-            "tips": ["Please set your OPENAI_API_KEY in the .env file."],
-            "core_terms": [],
-            "flashcards": [],
-            "phase": "2-ai-powered",
-        }
+        return _fallback_study_sheet(text)
 
-    # Define output schema
-    response_schemas = [
-        ResponseSchema(name="main_idea", description="A concise headline summarizing the main topic of the text (max 200 chars)"),
-        ResponseSchema(name="key_concepts", description="List of 5-8 key concepts or terms from the text", type="list"),
-        ResponseSchema(name="examples", description="List of 3-5 real-world examples or applications of the concepts", type="list"),
-        ResponseSchema(name="sections", description="Break down the text into 3-6 logical sections, each with title, summary, and difficulty level", type="list", items={
-            "title": "string",
-            "summary": "string",
-            "difficulty": "string (Easy/Medium/Hard)"
-        }),
-        ResponseSchema(name="questions", description="6 practice questions based on the content", type="list"),
-        ResponseSchema(name="tips", description="3 study tips for this material", type="list"),
-    ]
-
-    output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = output_parser.get_format_instructions()
+    response_schemas = """
+Return JSON with:
+- main_idea: string
+- key_concepts: array of strings
+- examples: array of strings
+- sections: array of objects with title, summary, difficulty (Easy/Medium/Hard)
+- questions: array of strings
+- tips: array of strings
+"""
 
     prompt = PromptTemplate(
         template="""
@@ -312,12 +307,11 @@ Text to analyze:
 Ensure the output is educational, accurate, and engaging for students.
 """,
         input_variables=["text"],
-        partial_variables={"format_instructions": format_instructions}
+        partial_variables={"format_instructions": response_schemas},
     )
 
     try:
-        chain = prompt | llm | output_parser
-        result = chain.invoke({"text": text[:8000]})  # Limit text length
+        result = _invoke_json_llm(llm, prompt, {"text": text[:8000]})
 
         # Process sections to add key_terms and flashcards
         sections = result.get("sections", [])

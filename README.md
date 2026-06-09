@@ -82,21 +82,34 @@ NeuralAcademy/
 
 ## Getting Started
 
+### Quick start (both servers)
+
+```bash
+chmod +x scripts/dev.sh
+./scripts/dev.sh
+```
+
+- Frontend: http://127.0.0.1:5173
+- Backend API: http://127.0.0.1:8000
+- The Vite dev server proxies `/api/*` to the backend automatically.
+
 ### Backend
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-The API runs on `http://127.0.0.1:8000`.
+Optional: set `OPENAI_API_KEY` in `backend/.env` for GPT-powered study sheets. Without it, the app uses deterministic fallbacks and still runs.
 
-Optional:
+Verify backend:
 
-- Set `OPENAI_API_KEY` in a `.env` file inside `backend/` to enable GPT-powered study sheets, coding challenges, and tutor analysis.
+```bash
+cd backend && .venv/bin/pytest -q
+```
 
 ### Frontend
 
@@ -106,7 +119,23 @@ npm install
 npm run dev
 ```
 
-The Vite app runs on `http://127.0.0.1:5173` by default. If needed, you can point it at a different backend with `VITE_API_BASE_URL`.
+Verify build:
+
+```bash
+cd frontend && npm run build
+```
+
+### App layout (NeuralAcademy 2.0 shell)
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Marketing home |
+| `/login`, `/register` | Auth placeholders (Sprint 1) |
+| `/dashboard` | Student metrics dashboard |
+| `/study` | PDF upload, preview, study sheets |
+| `/coding` | Coding lab (coming soon) |
+| `/analytics` | Learning analytics |
+| `/profile` | User profile |
 
 ## Vision
 

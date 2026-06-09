@@ -1,0 +1,131 @@
+.platform-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.platform-sidebar {
+  border-right: 1px solid rgba(31, 41, 55, 0.95);
+  background: rgba(15, 23, 42, 0.98);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.platform-brand {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.platform-brand span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.platform-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.platform-nav a {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.55rem;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.platform-nav a:hover {
+  background: rgba(30, 64, 175, 0.22);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #f8fafc;
+}
+
+.platform-nav a.active {
+  background: rgba(30, 64, 175, 0.35);
+  border-color: rgba(59, 130, 246, 0.75);
+  color: #f8fafc;
+}
+
+.platform-sidebar-footer {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.platform-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.platform-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.95);
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.platform-topbar-title {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.platform-auth-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.platform-auth-links a {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  color: #e5e7eb;
+}
+
+.platform-auth-links a.primary-link {
+  border-color: rgba(59, 130, 246, 0.9);
+  background: rgba(37, 99, 235, 0.25);
+}
+
+.platform-content {
+  flex: 1;
+  padding: 1.25rem;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .platform-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .platform-sidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(31, 41, 55, 0.95);
+  }
+
+  .platform-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
